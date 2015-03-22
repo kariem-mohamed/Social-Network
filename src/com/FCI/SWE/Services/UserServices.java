@@ -31,9 +31,9 @@ import com.FCI.SWE.ServicesModels.UserEntity;
  * This class contains REST services, also contains action function for web
  * application
  * 
- * @author Mohamed Samir
- * @version 1.0
- * @since 2014-02-12
+ * @author Kariem Mohamed
+ * @version 1.3
+ * @since 2015-02-23
  *
  */
 @Path("/")
@@ -118,6 +118,18 @@ public class UserServices {
 	}
 	
 	
+	/**
+	 * this rest service allow the user to send friend request to the specified user 
+	 * and update the data store appropriately
+	 * 
+	 * 
+	 * @param currentUserEmail 
+	 *                 currently logged in email
+	 * @param requestedUserEmail
+	 *                 the email of the user the currently logged in user sent friend request to 
+	 * @return status in json format
+	 */
+	
 	@POST
 	@Path("/sendFriendRequestService")
 	public String sendFriendRequestService(@FormParam("currentUserEmail") String currentUserEmail,
@@ -129,6 +141,19 @@ public class UserServices {
 		return object.toString();
 
 	}
+	
+	/**
+	 * this rest service allow the user to show all the friends requests
+	 * other users sent to him
+	 * 
+	 * 
+	 * @param currentUserEmail 
+	 *                 currently logged in email
+	 * 
+	 * @return status in json format
+	 */
+	
+	
 	
 	@POST
 	@Path("/showFriendRequestService")
@@ -146,6 +171,19 @@ public class UserServices {
 
 	}
 	
+	/**
+	 * this rest service allow the user to show all his friends emails
+	 *
+	 * 
+	 * 
+	 * @param currentUserEmail 
+	 *                 currently logged in email
+	 * 
+	 * @return status in json format
+	 */
+	
+	
+	
 	@POST
 	@Path("/showFriendsService")
 	public String showFriendsService(@FormParam("currentUserEmail") String currentUserEmail) {
@@ -161,6 +199,24 @@ public class UserServices {
 		return object.toString();
 
 	}
+
+	/**
+	 * this rest service allow the user to accept a specified friend request by
+	 * clicking on the desired email
+	 *
+	 * 
+	 * 
+	 * @param currentUserEmail 
+	 *                 currently logged in email
+	 *                 
+	 * @param friendRequestEmail
+	 *                 the email the user accept to be friends with
+	 * 
+	 * @return a String confirming their friendship
+	 */
+	
+	
+	
 	
 	@POST
 	@Path("/acceptRequestService")

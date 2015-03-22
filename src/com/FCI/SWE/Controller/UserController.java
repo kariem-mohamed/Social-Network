@@ -32,9 +32,9 @@ import com.FCI.SWE.ServicesModels.UserEntity;
  * This class contains REST services, also contains action function for web
  * application
  * 
- * @author Mohamed Samir
- * @version 1.0
- * @since 2014-02-12
+ * @author Kariem Mohamed
+ * @version 1.3
+ * @since 2014-02-15
  *
  */
 @Path("/")
@@ -55,7 +55,7 @@ public class UserController {
 		String serviceUrl = "http://localhost/rest/SearchService";
 		String urlParameters = "email=" + email;
 		String retJson = Connection.connect(
-				"http://localhost:8888/rest/SearchService", urlParameters,
+				"http://1-dot-sweii-socialnetwork.appspot.com/rest/SearchService", urlParameters,
 				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
 		JSONParser parser = new JSONParser();
 		Object obj;
@@ -87,7 +87,13 @@ public class UserController {
 		
 		return Response.ok(new Viewable("/jsp/register")).build();
 	}
-
+	
+	/**
+	 * Action function to render the search button press
+	 * the user must be signed in to be able to view search page
+	 * 
+	 * @return search page
+	 */
 	
 	@GET
 	@Path("/search")
@@ -139,7 +145,7 @@ public class UserController {
 	public String response(@FormParam("uname") String uname,
 			@FormParam("email") String email, @FormParam("password") String pass) {
 
-		String serviceUrl = "http://localhost:8888/rest/RegistrationService";
+		String serviceUrl = "http://1-dot-sweii-socialnetwork.appspot.com/rest/RegistrationService";
 		String urlParameters = "uname=" + uname + "&email=" + email
 				+ "&password=" + pass;
 		String retJson = Connection.connect(serviceUrl, urlParameters, "POST",
@@ -184,7 +190,7 @@ public class UserController {
 		String urlParameters = "uname=" + uname + "&password=" + pass;
 
 		String retJson = Connection.connect(
-				"http://localhost:8888/rest/LoginService", urlParameters,
+				"http://1-dot-sweii-socialnetwork.appspot.com/rest/LoginService", urlParameters,
 				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
 
 		JSONParser parser = new JSONParser();
@@ -213,18 +219,35 @@ public class UserController {
 
 	}
 	
+	
+	/**
+	 * Action function to render the press on send friend request link on
+	 * the home page of the other user
+	 * 
+	 * @return Request confirmation
+	 */
+	
 	@GET
 	@Path("/sendFriendRequest")
 	@Produces("text/html")
 	public String sendFriendRequest() {
 		
 		String retJson = Connection.connect(
-				"http://localhost:8888/rest/sendFriendRequestService","currentUserEmail=" + currentActiveUser.getEmail() + "&requestedUserEmail="+requestedUser.getEmail(),
+				"http://1-dot-sweii-socialnetwork.appspot.com/rest/sendFriendRequestService","currentUserEmail=" + currentActiveUser.getEmail() + "&requestedUserEmail="+requestedUser.getEmail(),
 				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
 
 		return "Request Sent Successfully";
 
 	}
+	
+	
+	
+	/**
+	 * shows the friend requests sent to the user in the shape of a button for
+	 * each email
+	 * 
+	 * @return an html page created dynamicaly
+	 */
 	
 	@GET
 	@Path("/showFriendRequest")
@@ -233,7 +256,7 @@ public class UserController {
 		if(currentActiveUser == null)
 			return "you are not logged in.";
 		String retJson = Connection.connect(
-				"http://localhost:8888/rest/showFriendRequestService","currentUserEmail=" + currentActiveUser.getEmail(),
+				"http://1-dot-sweii-socialnetwork.appspot.com/rest/showFriendRequestService","currentUserEmail=" + currentActiveUser.getEmail(),
 				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
 		
 		JSONParser parser = new JSONParser();
@@ -258,13 +281,23 @@ public class UserController {
 
 	}
 	
+	/**
+	 * action function to handle the accepted friend Requests
+	 * 
+	 * @param email
+	 *            the email the currently logged in user pressed its button
+	 * 
+	 * @return an html page created dynamicaly
+	 */
+	
+	
 	@POST
 	@Path("/acceptRequest")
 	@Produces("text/html")
 	public String acceptRequest(@FormParam("email") String email) {
 		
 		String ret = Connection.connect(
-				"http://localhost:8888/rest/acceptRequestService","currentUserEmail=" + currentActiveUser.getEmail()+"&friendRequestEmail=" + email,
+				"http://1-dot-sweii-socialnetwork.appspot.com/rest/acceptRequestService","currentUserEmail=" + currentActiveUser.getEmail()+"&friendRequestEmail=" + email,
 				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
 		
 		
@@ -274,6 +307,16 @@ public class UserController {
 
 	}
 	
+	
+	/**
+	 * action function to show all the friends of a user
+	 * dynamically create html page to accomodate the variable number and emails of the 
+	 * friends of the user
+	 * 
+	 * 
+	 * @return an html page created dynamicaly
+	 */
+	
 	@GET
 	@Path("/showFriends")
 	@Produces("text/html")
@@ -281,7 +324,7 @@ public class UserController {
 		if(currentActiveUser == null)
 			return "you are not logged in.";
 		String retJson = Connection.connect(
-				"http://localhost:8888/rest/showFriendsService","currentUserEmail=" + currentActiveUser.getEmail(),
+				"http://1-dot-sweii-socialnetwork.appspot.com/rest/showFriendsService","currentUserEmail=" + currentActiveUser.getEmail(),
 				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
 		
 		JSONParser parser = new JSONParser();
@@ -305,6 +348,14 @@ public class UserController {
 		return "";
 
 	}
+	
+	
+	/**
+	 * handle the log out function
+	 * 
+	 * 
+	 * @return String indicating the success of logging out process
+	 */
 	
 	@GET
 	@Path("/logOut")

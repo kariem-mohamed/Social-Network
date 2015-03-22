@@ -22,9 +22,9 @@ import com.google.appengine.api.datastore.Transaction;
  * This class will act as a model for user, it will holds user data
  * </p>
  *
- * @author Mohamed Samir
- * @version 1.0
- * @since 2014-02-12
+ * @author Kariem Mohamed
+ * @version 1.3
+ * @since 2015-02-27
  */
 public class UserEntity {
 	private String name;
@@ -53,6 +53,30 @@ public class UserEntity {
 		this.friends = new ArrayList<String>();
 		this.friendRequests = new ArrayList<String>();
 	}
+	
+	
+	/**
+	 * Constructor for creating a fully intialized object
+	 * 
+	 * @param name
+	 *            user name
+	 * @param email
+	 *            user email
+	 * @param password
+	 *            user provided password
+	 *            
+	 * @param id 
+	 *          user ID
+	 * @param friends
+	 *             arraylist of the emails of all the friends of the user entity
+	 *             
+	 * @param friendRequests
+	 *                arraylist of the emails of all the users that sent friend requests to the user
+	 *              
+	 *          
+	 *            
+	 *            
+	 */
 	
 	public UserEntity(String name, String email, String password, long id, ArrayList<String>friends, ArrayList<String>friendRequests) {
 		this.name = name;
@@ -170,6 +194,21 @@ public class UserEntity {
 
 	}
 	
+
+	/**
+	 * an overloaded method of getUser 
+	 * this method get the user entity from data store just by providing
+	 * his email
+	 * 
+	 * 
+	 * @param email
+	 *            the email you wish to search for
+	 * @return UserEntity
+	 *            UserEntity object is returned representing the email provided
+	 * 
+	 *      
+	 */
+	
 	public static UserEntity getUser(String email) {
 		DatastoreService datastore = DatastoreServiceFactory
 				.getDatastoreService();
@@ -199,6 +238,22 @@ public class UserEntity {
 		return null;
 	}
 	
+	
+
+	/**
+	 * get the entity the user is sent the friend request and 
+	 * update its friend requests list
+	 *
+	 * 
+	 * @param currentUserEmail
+	 *            currently logged in user email
+	 * @param friendRequestEmail
+	 *            the Email the currently logged in user sent to friend request
+	 * @return
+	 *        true if succedded
+	 * 
+	 *      
+	 */
 	
 	public static Boolean updateUser(String currentUserEmail, String requestedUserEmail) {
 		DatastoreService datastore = DatastoreServiceFactory
@@ -233,6 +288,21 @@ public class UserEntity {
 		return true;
 
 	}
+	
+	
+	/**
+	 * by providing the currently logged in email and the
+	 * friend Request email it will allow both users to be friends
+	 * and of course update the database
+	 * 
+	 * @param currentUserEmail
+	 *            currently logged in user email
+	 * @param friendRequestEmail
+	 *            the Email who sent the request to the currently logged in email
+	 * 
+	 *      
+	 */
+	
 	public static void acceptRequest(String currentUserEmail, String friendRequestEmail){
 		UserEntity currentUser = getUser(currentUserEmail);
 		UserEntity friendUser = getUser(friendRequestEmail);
