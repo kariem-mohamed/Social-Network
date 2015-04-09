@@ -6,6 +6,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import com.FCI.SWE.Controller.UserController;
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.Entity;
@@ -22,17 +23,16 @@ import com.google.appengine.api.datastore.Transaction;
  * This class will act as a model for user, it will holds user data
  * </p>
  *
- * @author Kariem Mohamed
- * @version 1.3
- * @since 2015-02-27
+ * @author Mohamed Samir
+ * @version 1.0
+ * @since 2014-02-12
  */
 public class UserEntity {
 	private String name;
 	private String email;
 	private String password;
-	private ArrayList<String> friendRequests = new ArrayList<String>();
-	private ArrayList<String> friends = new ArrayList<String>();
-	private long id;
+	
+    private long id;
 	
 
 	/**
@@ -50,42 +50,16 @@ public class UserEntity {
 		this.name = name;
 		this.email = email;
 		this.password = password;
-		this.friends = new ArrayList<String>();
-		this.friendRequests = new ArrayList<String>();
+
 	}
-	
-	
-	/**
-	 * Constructor for creating a fully intialized object
-	 * 
-	 * @param name
-	 *            user name
-	 * @param email
-	 *            user email
-	 * @param password
-	 *            user provided password
-	 *            
-	 * @param id 
-	 *          user ID
-	 * @param friends
-	 *             arraylist of the emails of all the friends of the user entity
-	 *             
-	 * @param friendRequests
-	 *                arraylist of the emails of all the users that sent friend requests to the user
-	 *              
-	 *          
-	 *            
-	 *            
-	 */
 	
 	public UserEntity(String name, String email, String password, long id, ArrayList<String>friends, ArrayList<String>friendRequests) {
 		this.name = name;
 		this.email = email;
 		this.password = password;
 		this.id = id;
-		this.friends = new ArrayList<String>();
-		this.friendRequests = new ArrayList<String>();
-	}
+		
+}
 	
 	private void setId(long id){
 		this.id = id;
@@ -107,20 +81,7 @@ public class UserEntity {
 		return password;
 	}
 	
-	public ArrayList<String> getFriendRequests(){
-		return friendRequests;
-	}
 	
-	public ArrayList<String> getFriends(){
-		return friends;
-	}
-	public void setFriendRequests(Object friendRequests){
-		this.friendRequests = (ArrayList<String>)friendRequests;
-	}
-	
-	public void setFriends(Object friends){
-		this.friends = (ArrayList<String>)friends;
-	}
 	
 	/**
 	 * 
@@ -134,7 +95,7 @@ public class UserEntity {
 	 * @return Constructed user entity
 	 */
 
-	public static UserEntity getUser(String name, String pass) {
+	public static UserEntity getUser(String email, String pass) {
 		DatastoreService datastore = DatastoreServiceFactory
 				.getDatastoreService();
 
@@ -142,11 +103,9 @@ public class UserEntity {
 		
 		PreparedQuery pq = datastore.prepare(gaeQuery);
 		for (Entity entity : pq.asIterable()) {
-			if (entity.getProperty("name").toString().equals(name) && entity.getProperty("password").toString().equals(pass)) {
+			if (entity.getProperty("email").toString().equals(email) && entity.getProperty("password").toString().equals(pass)) {
 				UserEntity returnedUser = new UserEntity(entity.getProperty("name").toString(), entity.getProperty("email")
 						.toString(), entity.getProperty("password").toString());
-				returnedUser.setFriendRequests(entity.getProperty("friendRequests"));
-				returnedUser.setFriends(entity.getProperty("friends"));
 				
 				
 				returnedUser.setId(entity.getKey().getId());
@@ -173,14 +132,11 @@ public class UserEntity {
 		
 		try {
 		Entity newUser = new Entity("users", list.size() + 1);
-		this.friendRequests = new ArrayList<String>();
-		this.friends = new ArrayList<String>();
-		newUser.setProperty("name", this.name);
+	
+     	newUser.setProperty("name", this.name);
 		newUser.setProperty("email", this.email);
 		newUser.setProperty("password", this.password);
-		newUser.setUnindexedProperty("friendRequests", this.friendRequests);
-		newUser.setUnindexedProperty("friends", this.friends);
-
+	
 		
 		
 		datastore.put(newUser);
@@ -194,42 +150,20 @@ public class UserEntity {
 
 	}
 	
-
-	/**
-	 * an overloaded method of getUser 
-	 * this method get the user entity from data store just by providing
-	 * his email
-	 * 
-	 * 
-	 * @param email
-	 *            the email you wish to search for
-	 * @return UserEntity
-	 *            UserEntity object is returned representing the email provided
-	 * 
-	 *      
-	 */
-	
 	public static UserEntity getUser(String email) {
 		DatastoreService datastore = DatastoreServiceFactory
 				.getDatastoreService();
 
+
 		Query gaeQuery = new Query("users");
-		
+
 		PreparedQuery pq = datastore.prepare(gaeQuery);
 		for (Entity entity : pq.asIterable()) {
 			if ( entity.getProperty("email").toString().equals(email) ) {
 				UserEntity returnedUser = new UserEntity(entity.getProperty("name").toString(), entity.getProperty("email")
 						.toString(), entity.getProperty("password").toString());
-				//entity.getProperty("friendRequests"));
-				returnedUser.setFriendRequests(entity.getProperty("friendRequests"));
-				returnedUser.setFriends(entity.getProperty("friends"));
-
-				if(returnedUser.getFriendRequests() == null)
-					returnedUser.setFriendRequests(new ArrayList<String>());
-				if(returnedUser.getFriends() == null)
-					returnedUser.setFriends(new ArrayList<String>());
 				
-				
+                 
 				returnedUser.setId(entity.getKey().getId());
 				return returnedUser;
 			}
@@ -238,47 +172,33 @@ public class UserEntity {
 		return null;
 	}
 	
-	
 
 	/**
-	 * get the entity the user is sent the friend request and 
-	 * update its friend requests list
-	 *
+	 * This method will be used to add friend  datastore
 	 * 
-	 * @param currentUserEmail
-	 *            currently logged in user email
-	 * @param friendRequestEmail
-	 *            the Email the currently logged in user sent to friend request
-	 * @return
-	 *        true if succedded
-	 * 
-	 *      
+	 * @return boolean if add friend saved correctly or not
 	 */
-	
-	public static Boolean updateUser(String currentUserEmail, String requestedUserEmail) {
+	public static Boolean addFriend(String currentUserEmail, String requestedUserEmail) {
 		DatastoreService datastore = DatastoreServiceFactory
 				.getDatastoreService();
 		Transaction txn = datastore.beginTransaction();
-		Query gaeQuery = new Query("users");
+		Query gaeQuery = new Query("Friends");
 		PreparedQuery pq = datastore.prepare(gaeQuery);
+		List<Entity> list = pq.asList(FetchOptions.Builder.withDefaults());
+		
 		
 		
 		
 		try {
-		UserEntity updatedUser = UserEntity.getUser(requestedUserEmail);
+
 		
-		updatedUser.getFriendRequests().add(currentUserEmail);
+		Entity newUser = new Entity("Friends", list.size() + 1);
+	
+	    newUser.setProperty("User email",  currentUserEmail);
+		newUser.setProperty("Friend email",  requestedUserEmail);
+		newUser.setProperty("status", "0");
 		
-		
-		Entity updatedEntity = new Entity("users", updatedUser.id);
-		updatedEntity.setProperty("name", updatedUser.name);
-		updatedEntity.setProperty("email", updatedUser.email);
-		updatedEntity.setProperty("password", updatedUser.password);
-		updatedEntity.setProperty("id", updatedUser.id);
-		updatedEntity.setUnindexedProperty("friendRequests", updatedUser.friendRequests);
-		updatedEntity.setUnindexedProperty("friends", updatedUser.friends);		
-		
-		datastore.put(updatedEntity);
+		datastore.put(newUser);
 		txn.commit();
 		}finally{
 			if (txn.isActive()) {
@@ -288,72 +208,322 @@ public class UserEntity {
 		return true;
 
 	}
-	
-	
+
+
 	/**
-	 * by providing the currently logged in email and the
-	 * friend Request email it will allow both users to be friends
-	 * and of course update the database
+	 * This method will be used to send message to friend  datastore
 	 * 
-	 * @param currentUserEmail
-	 *            currently logged in user email
-	 * @param friendRequestEmail
-	 *            the Email who sent the request to the currently logged in email
-	 * 
-	 *      
+	 * @return boolean if send message saved correctly or not
 	 */
-	
-	public static void acceptRequest(String currentUserEmail, String friendRequestEmail){
-		UserEntity currentUser = getUser(currentUserEmail);
-		UserEntity friendUser = getUser(friendRequestEmail);
-		
-		for(int i = 0; i < currentUser.getFriendRequests().size(); i++){
-			if(currentUser.getFriendRequests().get(i).equals(friendRequestEmail)){
-				currentUser.getFriendRequests().remove(i);
-				currentUser.getFriends().add(friendRequestEmail);
-			}
-		}
-		
-		friendUser.getFriends().add(currentUserEmail);
+	public static Boolean sendMessage(String currentUserEmail, String requestedUserEmail , String Message) {
 		DatastoreService datastore = DatastoreServiceFactory
 				.getDatastoreService();
 		Transaction txn = datastore.beginTransaction();
-		Query gaeQuery = new Query("users");
+		Query gaeQuery = new Query("Messages");
 		PreparedQuery pq = datastore.prepare(gaeQuery);
+		List<Entity> list = pq.asList(FetchOptions.Builder.withDefaults());
 		
 		
 		
 		try {
+
+		Entity entity = new Entity("Messages", list.size() + 1);
+
+
 		
-		
-		Entity updatedEntity = new Entity("users", currentUser.id);
-		updatedEntity.setProperty("name", currentUser.name);
-		updatedEntity.setProperty("email", currentUser.email);
-		updatedEntity.setProperty("password", currentUser.password);
-		updatedEntity.setProperty("id", currentUser.id);
-		updatedEntity.setUnindexedProperty("friendRequests", currentUser.friendRequests);
-		updatedEntity.setUnindexedProperty("friends", currentUser.friends);		
-		
-		datastore.put(updatedEntity);
-		
-		txn.commit();
-		
-		
-		txn = datastore.beginTransaction();
-		Entity updatedEntity2 = new Entity("users", friendUser.id);
-		updatedEntity2.setProperty("name", friendUser.name);
-		updatedEntity2.setProperty("email", friendUser.email);
-		updatedEntity2.setProperty("password", friendUser.password);
-		updatedEntity2.setProperty("id", friendUser.id);
-		updatedEntity2.setUnindexedProperty("friendRequests", friendUser.friendRequests);
-		updatedEntity2.setUnindexedProperty("friends", friendUser.friends);	
-		
-		datastore.put(updatedEntity2);
+		entity.setProperty("Sender email",  currentUserEmail);
+		entity.setProperty("User email",  requestedUserEmail);
+		entity.setProperty("Message", Message);
+		entity.setProperty("status", "not seen");
+	
+		datastore.put(entity);
 		txn.commit();
 		}finally{
 			if (txn.isActive()) {
 		        txn.rollback();
 		    }
 		}
+		return true;
+
 	}
+
+
+	/**
+	 * This method will be used to accept friend request  
+	 * 
+	 * @return boolean if accept friend request   saved correctly or not
+	 */
+	public static boolean  acceptRequest(String currentUserEmail, String friendRequestEmail){
+		
+		DatastoreService datastore = DatastoreServiceFactory
+				.getDatastoreService();
+
+		Query gaeQuery = new Query("Friends");
+		
+		PreparedQuery pq = datastore.prepare(gaeQuery);
+		for (Entity entity : pq.asIterable()) {
+			if ( entity.getProperty("User email").toString().equals(friendRequestEmail ) &&
+					entity.getProperty("Friend email").toString().equals(currentUserEmail )	) {
+		
+     		entity.setProperty("status", "1" );
+				datastore.put(entity);
+				
+			           
+				return true;
+			}
+		}
+
+		return false;
+		
+	
+
+	}
+
+	/**
+	 * This method will be used to show all friend request  
+	 * 
+	 * @return ArrayList<String> of friend requests
+	 */
+public static ArrayList<String>  FriendRequests(String currentUserEmail){
+		
+		DatastoreService datastore = DatastoreServiceFactory
+				.getDatastoreService();
+
+		Query gaeQuery = new Query("Friends");
+		 ArrayList<String> FriendRequests = new ArrayList<String>();
+		PreparedQuery pq = datastore.prepare(gaeQuery);
+		for (Entity entity : pq.asIterable()) {
+			if ( entity.getProperty("Friend email").toString().equals(currentUserEmail) &&
+					entity.getProperty("status").toString().equals("0")	) {
+		
+		
+      		FriendRequests.add( entity.getProperty("User email").toString());
+                      
+			}
+		}
+
+		return FriendRequests;
+		
+	
+
+	}
+
+
+public static ArrayList<String>  showFriends(String currentUserEmail){
+		
+		DatastoreService datastore = DatastoreServiceFactory
+				.getDatastoreService();
+
+		Query gaeQuery = new Query("Friends");
+		 ArrayList<String> Friends = new ArrayList<String>();
+		PreparedQuery pq = datastore.prepare(gaeQuery);
+		for (Entity entity : pq.asIterable()) {
+			if ( (entity.getProperty("User email").toString().equals(currentUserEmail) ||
+					entity.getProperty("Friend email").toString().equals(currentUserEmail) 
+					) &&entity.getProperty("status").toString().equals("1")	) {
+		
+		         if (entity.getProperty("User email").toString().equals(currentUserEmail) )
+				Friends.add( entity.getProperty("Friend email").toString());
+		         else if (entity.getProperty("Friend email").toString().equals(currentUserEmail) )
+						Friends.add( entity.getProperty("User email").toString());
+		                      
+			}
+		}
+
+		return Friends;
+		
+	
+
+	}
+
+
+/**
+ * This method will be used to show messages   
+ * 
+ * @return ArrayList<String> of all messages
+ */
+public static ArrayList<String>  showMessages(String currentUserEmail){
+		
+		DatastoreService datastore = DatastoreServiceFactory
+				.getDatastoreService();
+
+		Query gaeQuery = new Query("Messages");
+		 ArrayList<String> Messages = new ArrayList<String>();
+		PreparedQuery pq = datastore.prepare(gaeQuery);
+		for (Entity entity : pq.asIterable()) {
+			if ( entity.getProperty("User email").toString().equals(currentUserEmail) &&
+					entity.getProperty("status").toString().equals("not seen")	) {
+		
+		
+				Messages.add( entity.getProperty("Sender email").toString());
+				Messages.add( entity.getProperty("Message").toString());
+				entity.setProperty("status", "seen" );
+				
+
+				datastore.put(entity);
+			}
+		}
+		
+
+		return Messages;
+		
+	
+
+	}
+
+
+
+/**
+ * This method will be used to  show all group messages    
+ * 
+ * @return ArrayList<String> of  all group messages 
+ */
+public static ArrayList<String>  showMessagesGroup(String currentUserEmail){
+		
+		DatastoreService datastore = DatastoreServiceFactory
+				.getDatastoreService();
+
+		ArrayList <String> members =  UserController.messageMembers ;
+		ArrayList <String> status =  new  ArrayList <String> ();
+		ArrayList <String> messages  =  new  ArrayList <String> ();;
+		Query gaeQuery = new Query("Group Message");
+		PreparedQuery pq = datastore.prepare(gaeQuery);
+	    for (Entity entity : pq.asIterable()) {
+	    	ArrayList <String> membersDB  = (ArrayList <String> )entity.getProperty("Members") ;
+	    	ArrayList <String> messagesDB  = (ArrayList <String> )entity.getProperty("Message") ;
+
+    	    status = (ArrayList <String> )entity.getProperty("status") ;
+
+    	    for ( int i  = membersDB.indexOf(currentUserEmail) , j = 0 ;i <  status.size(); j += 2 , i +=  members.size() )
+    	    {
+               if ( membersDB.indexOf(currentUserEmail) != -1 && status.get(i).equals("not seen") )
+               {
+
+				  messages.add(messagesDB.get(j)) ;
+				  messages.add(messagesDB.get(j+1)) ;
+					
+            	  status.set( i ,  "seen");
+			
+				  entity.setProperty("status", status);
+					
+
+			   }	
+	      }
+
+			  datastore.put(entity);
+	    }
+	    
+	    
+		return messages;
+		
+			
+
+
+	}
+
+
+/**
+ * This method will be used to  show all group messages    
+ * 
+ * @return Boolean of  all group messages 
+ */
+public static Boolean saveMessageGroup( String member) {
+	ArrayList <String> messages = new ArrayList <String>();
+	ArrayList <String> members =  UserController.messageMembers ;
+	ArrayList <String> status = new ArrayList <String>() ;
+	
+
+	DatastoreService datastore = DatastoreServiceFactory
+			.getDatastoreService();
+	
+
+	Query gaeQuery = new Query("Group Message");
+	PreparedQuery pq = datastore.prepare(gaeQuery);
+	List<Entity> list = pq.asList(FetchOptions.Builder.withDefaults());
+
+	Entity group = new Entity("Group Message", list.size() + 1);
+	 	
+	messages.add("");
+	status.add("");
+		
+	//group.setProperty("Message", messages);
+	group.setProperty("Message", messages);
+	group.setProperty("Members", members);
+
+	group.setProperty("status", status);
+			datastore.put(group);
+	
+		return true;
+
+}
+
+/**
+ * This method will be used to send message group  
+ * 
+ * @return boolean if send message to group    saved correctly or not
+ */
+
+public static Boolean sendMessageGroup( String currentUserEmail ,String message) {
+	
+
+	ArrayList <String> members =  UserController.messageMembers ;
+	ArrayList <String> status =  new  ArrayList <String> ();
+
+	ArrayList <String> messages =  new  ArrayList <String> ();
+
+
+    DatastoreService datastore = DatastoreServiceFactory
+			.getDatastoreService();
+
+	Query gaeQuery = new Query("Group Message");
+	PreparedQuery pq = datastore.prepare(gaeQuery);
+   
+
+    for (Entity entity : pq.asIterable()) {
+    	ArrayList <String> membersDB  = (ArrayList <String> )entity.getProperty("Members") ;
+    	int checkExist = 0 ;
+    	if ( membersDB.size() != members.size() )
+    		continue ;
+    	else
+    	{
+    		 for ( int i = 0 ;i <  members.size() ; i ++ )
+    			 if ( !members.get(i).equals(membersDB.get(i)))
+    				 checkExist = 1 ;
+    		
+    	}
+    	
+		if (  checkExist == 0 )	 {
+			status = (ArrayList <String> )entity.getProperty("status") ;
+			messages  = (ArrayList <String> )entity.getProperty("Message") ;
+			
+			if (status.get(0).equals(""))
+				status = new ArrayList <String> ();
+
+			if (messages.get(0).equals(""))
+				messages = new ArrayList <String> ();
+			
+			for ( int i  = 0 ;i < members.size(); i ++ )
+				status.add("not seen");
+	
+
+		    for ( int i  = 0 ;i <  status.size(); i +=  members.size() )
+			status.set( (members.indexOf(currentUserEmail) )+ i,  "seen");
+
+			 messages.add(currentUserEmail);
+	    	 messages.add(message);
+
+					 
+			 entity.setProperty("Message" , messages);
+			 entity.setProperty("status", status);
+		 	
+             
+			datastore.put(entity);
+			return true;
+
+		}
+	}
+
+	return false;
+
+}
 }

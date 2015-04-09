@@ -17,15 +17,13 @@ public class GroupServices {
 
 	@POST
 	@Path("/CreateGroupService")
-	public String createGroup(@FormParam("user_id") String userId,
-			@FormParam("name") String name,
-			@FormParam("desc") String desc,
+	public String createGroup(@FormParam("name") String name,
+			@FormParam("UserEmail") String UserEmail,
 			@FormParam("privacy") String privacy) {
-		
+
 		GroupEntity groupEntity = new GroupEntity();
-		groupEntity.setDescription(desc);
 		groupEntity.setName(name);
-		groupEntity.setOwnerId(Long.parseLong(userId));
+		groupEntity.setOwnerId(Long.parseLong(UserEmail));
 		groupEntity.setPrivacy(privacy);
 		JSONObject json = new JSONObject();
 		if(groupEntity.saveGroup())

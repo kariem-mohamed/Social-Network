@@ -7,6 +7,9 @@
          <p>User INFO</p>
 		<p>Name: ${it.name} <br> Email: ${it.email} </p>
 		<a href="/social/sendFriendRequest">Send Friend Request</a>
-	
+	   <br>
+	   <br>
+	  
+
 </body>
 </html>

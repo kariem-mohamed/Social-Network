@@ -22,20 +22,17 @@ public class GroupController {
 	@Path("/group")
 	public Response group() {
 
-		if (User.getCurrentActiveUser() == null) {
-			return Response.serverError().build();
-		}
 		return Response.ok(new Viewable("/jsp/GroupViews/createGroup")).build();
 	}
 
 	@POST
 	@Path("/CreateGroup")
 	public String createGroup(@FormParam("name") String name,
-			@FormParam("desc") String desc, @FormParam("privacy") String privacy) {
-
+		@FormParam("privacy") String privacy) {
+       System.out.println( UserController.currentActiveUser.getEmail());
 		String serviceUrl = "http://fci-swe-apps.appspot.com/rest/CreateGroupService";
 		String urlParameters = "user_id=" + User.getCurrentActiveUser().getId()
-				+ "&name=" + name + "&desc=" + desc + "&privacy=" + privacy;
+				+ "&name=" + name + "&UserEmail=" + UserController.currentActiveUser.getEmail() + "&privacy=" + privacy;
 		String retJson = Connection.connect(serviceUrl, urlParameters, "POST",
 				"application/x-www-form-urlencoded;charset=UTF-8");
 		JSONParser parser = new JSONParser();
@@ -53,4 +50,5 @@ public class GroupController {
 
 		return null;
 	}
+
 }

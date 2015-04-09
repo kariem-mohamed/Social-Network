@@ -20,10 +20,21 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import observerPattern.EventSubject;
+import observerPattern.NotificationFriendRequest;
+import observerPattern.NotificationGroupMessage;
+import observerPattern.NotificationSingleMessage;
+
 import org.glassfish.jersey.server.mvc.Viewable;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
+import Command.AcceptFriendRequest;
+import Command.Invoker;
+import Command.Receiver;
+import Command.ReplyGroupMessage;
+import Command.ReplySingleMessage;
 
 import com.FCI.SWE.Models.User;
 import com.FCI.SWE.ServicesModels.UserEntity;
@@ -32,16 +43,17 @@ import com.FCI.SWE.ServicesModels.UserEntity;
  * This class contains REST services, also contains action function for web
  * application
  * 
- * @author Kariem Mohamed
- * @version 1.3
- * @since 2014-02-15
+ * @author Mohamed Samir
+ * @version 1.0
+ * @since 2014-02-12
  *
  */
 @Path("/")
 @Produces("text/html")
 public class UserController {
-	private static UserEntity currentActiveUser = null; 
+	public static UserEntity currentActiveUser = null; 
 	private static UserEntity requestedUser = null; 
+	public static ArrayList<String> messageMembers = new ArrayList<String>() ;
 	/**
 	 * Action function to render Signup page, this function will be executed
 	 * using url like this /rest/signup
@@ -55,7 +67,7 @@ public class UserController {
 		String serviceUrl = "http://localhost/rest/SearchService";
 		String urlParameters = "email=" + email;
 		String retJson = Connection.connect(
-				"http://1-dot-sweii-socialnetwork.appspot.com/rest/SearchService", urlParameters,
+				"http://localhost:8888/rest/SearchService", urlParameters,
 				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
 		JSONParser parser = new JSONParser();
 		Object obj;
@@ -81,25 +93,49 @@ public class UserController {
 		
 		return null;
 	}
+	/**
+	 * Action function to render OpenGroupMessaging page this function will be executed using
+	 * url like this /rest/OpenGroupMessaging
+	 * 
+	 * @return sendMessages page
+	 */
+	@GET
+	@Path("/OpenGroupMessaging")
+	public Response openGroupMessaging() {
+		
+		if ( messageMembers == null )
+			return null ;
+		else
+		return Response.ok(new Viewable("/jsp/sendGroupMessage")).build();
+	}
 	@GET
 	@Path("/signup")
 	public Response signUp() {
 		
 		return Response.ok(new Viewable("/jsp/register")).build();
 	}
-	
+
 	/**
-	 * Action function to render the search button press
-	 * the user must be signed in to be able to view search page
+	 * Action function to render sendMessages page this function will be executed using
+	 * url like this /rest/sendMessages
 	 * 
-	 * @return search page
+	 * @return sendMessages page
 	 */
-	
+	@POST
+	@Path("/sendMessages")
+	public Response sendMessage(@FormParam("email") String email) {
+		
+		Map<String, String> map = new HashMap<String, String>();
+		
+		map.put("email", email);
+		return Response.ok(new Viewable("/jsp/sendMessage", map)).build();
+
+		
+	}
+
 	@GET
 	@Path("/search")
 	public Response search(){
-		if(currentActiveUser == null)
-			return Response.ok(new Viewable("/jsp/loginFirst")).build();
 		return Response.ok(new Viewable("/jsp/search")).build();
 	}
 	/**
@@ -145,7 +181,7 @@ public class UserController {
 	public String response(@FormParam("uname") String uname,
 			@FormParam("email") String email, @FormParam("password") String pass) {
 
-		String serviceUrl = "http://1-dot-sweii-socialnetwork.appspot.com/rest/RegistrationService";
+		String serviceUrl = "http://localhost:8888/rest/RegistrationService";
 		String urlParameters = "uname=" + uname + "&email=" + email
 				+ "&password=" + pass;
 		String retJson = Connection.connect(serviceUrl, urlParameters, "POST",
@@ -185,12 +221,12 @@ public class UserController {
 	@POST
 	@Path("/home")
 	@Produces("text/html")
-	public Response home(@FormParam("uname") String uname,
+	public Response home(@FormParam("email") String email,
 			@FormParam("password") String pass) {
-		String urlParameters = "uname=" + uname + "&password=" + pass;
+		String urlParameters = "email=" + email + "&password=" + pass;
 
 		String retJson = Connection.connect(
-				"http://1-dot-sweii-socialnetwork.appspot.com/rest/LoginService", urlParameters,
+				"http://localhost:8888/rest/LoginService", urlParameters,
 				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
 
 		JSONParser parser = new JSONParser();
@@ -202,8 +238,8 @@ public class UserController {
 				return null;
 			Map<String, String> map = new HashMap<String, String>();
 			currentActiveUser = new UserEntity(object.get("name").toString(), object.get("email").toString(), object.get("password").toString(), Long.parseLong(object.get("id").toString()), (ArrayList<String>)object.get("friends"), (ArrayList<String>)object.get("friendRequests"));
-			
-			map.put("name", currentActiveUser.getName());
+		
+        	map.put("name", currentActiveUser.getName());
 			map.put("email", currentActiveUser.getEmail());
 			return Response.ok(new Viewable("/jsp/home", map)).build();
 		} catch (ParseException e) {
@@ -218,113 +254,129 @@ public class UserController {
 		return null;
 
 	}
-	
-	
 	/**
-	 * Action function to render the press on send friend request link on
-	 * the home page of the other user
+	 * Action function to string to send friend request. This function will act as a
+	 * controller part, it will calls sendFriendRequestService to send to user friend request
 	 * 
-	 * @return Request confirmation
 	 */
-	
 	@GET
 	@Path("/sendFriendRequest")
 	@Produces("text/html")
 	public String sendFriendRequest() {
 		
 		String retJson = Connection.connect(
-				"http://1-dot-sweii-socialnetwork.appspot.com/rest/sendFriendRequestService","currentUserEmail=" + currentActiveUser.getEmail() + "&requestedUserEmail="+requestedUser.getEmail(),
+				"http://localhost:8888/rest/sendFriendRequestService","currentUserEmail=" + currentActiveUser.getEmail() + "&requestedUserEmail="+requestedUser.getEmail(),
 				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
 
 		return "Request Sent Successfully";
 
 	}
-	
-	
-	
 	/**
-	 * shows the friend requests sent to the user in the shape of a button for
-	 * each email
+	 * Action function to  notify current user. 
+	 *  it will calls notification type from observer
 	 * 
-	 * @return an html page created dynamicaly
 	 */
-	
 	@GET
-	@Path("/showFriendRequest")
+	@Path("/Notification")
 	@Produces("text/html")
-	public String showFriendRequest() {
-		if(currentActiveUser == null)
-			return "you are not logged in.";
-		String retJson = Connection.connect(
-				"http://1-dot-sweii-socialnetwork.appspot.com/rest/showFriendRequestService","currentUserEmail=" + currentActiveUser.getEmail(),
-				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
+	public String notification() {
 		
-		JSONParser parser = new JSONParser();
-		try{
-			Object obj = parser.parse(retJson);
-			JSONObject object = (JSONObject)obj;
-			ArrayList<String> friendRequests = (ArrayList<String>)object.get("friendRequests");
-			String html =  "<form action=\"/social/acceptRequest\" method=\"post\"> ";
-			if(friendRequests.size() == 0)
-				return "You Have No Friend Requests.";
-			for(int i = 0; i < friendRequests.size(); i++)
-				html += "<input type=\"submit\" name = \"email\" value=\"" + friendRequests.get(i)	+"\">" + "<br>";
-			html += "</form>";
-			return html;
-		}
+		 String html = "" ; 
+		 
+		 EventSubject sub = new EventSubject();
 		
-		catch(Exception e){
-			e.printStackTrace();
-		}
-		
-		return "";
+		 new NotificationFriendRequest( sub );
+	     new NotificationSingleMessage( sub );
+	     new NotificationGroupMessage( sub );
 
+	     html += sub.setState(currentActiveUser.getEmail());
+	     if ( html.length() == 0 )
+	    	 return "You Have No Notification" ;
+	     return html ;
 	}
 	
 	/**
-	 * action function to handle the accepted friend Requests
+	 * Action function to response to perform command , that current user execute it 
+	 *  
 	 * 
-	 * @param email
-	 *            the email the currently logged in user pressed its button
-	 * 
-	 * @return an html page created dynamicaly
 	 */
-	
-	
+		@POST
+		@Path("/performCommand")
+		@Produces("text/html")
+		public Response performCommand(@FormParam("email") String email ,  @FormParam("command") String command) {
+			    
+                String path = "";
+			    Receiver receiver = new Receiver(currentActiveUser.getEmail(),email);
+				Invoker invoker = new Invoker();
+		
+		
+    	  if ( command.equals( "1") )
+                path = invoker.execute(new ReplyGroupMessage() , receiver);
+			else if ( command.equals("2") )
+		          
+				path =invoker.execute(new ReplySingleMessage() , receiver);
+			else if (command.equals("3") )
+			{
+				path = "home";
+			    invoker.execute(new AcceptFriendRequest() , receiver);
+			}
+				
+				//return  
+
+				Map<String, String> map = new HashMap<String, String>();
+
+
+				map.put("email", email);
+
+				return Response.ok(new Viewable("/jsp/"+path, map)).build();
+
+		}
+		
+
+		/**
+		 * Action function to send message, This function will act as
+		 * a controller part and it will calls sendMessageService 
+		 * 
+		 * 
+		 * @param email
+		 *            provided  receiver's email
+		 * @param Message
+		 *            provided user's message
+		 * @return Status string
+		 */
 	@POST
-	@Path("/acceptRequest")
+	@Path("/sendMessage")
 	@Produces("text/html")
-	public String acceptRequest(@FormParam("email") String email) {
-		
-		String ret = Connection.connect(
-				"http://1-dot-sweii-socialnetwork.appspot.com/rest/acceptRequestService","currentUserEmail=" + currentActiveUser.getEmail()+"&friendRequestEmail=" + email,
+	public String sendMessages(@FormParam("email") String email,
+			@FormParam("Message") String Message ) {
+
+	
+        	String ret = Connection.connect(
+				"http://localhost:8888/rest/sendMessageService","currentUserEmail=" + currentActiveUser.getEmail()+"&friendEmail=" + email + "&Message=" + Message,
 				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
 		
 		
 		
 		
-		return ret;
+		return "Send Message success";
 
 	}
-	
-	
+
 	/**
-	 * action function to show all the friends of a user
-	 * dynamically create html page to accomodate the variable number and emails of the 
-	 * friends of the user
+	 * Action function to show friends, This function will act as
+	 * a controller part and it will calls showFriendsService 
 	 * 
 	 * 
-	 * @return an html page created dynamicaly
+	 * 
+	 * @return String of jsp
 	 */
-	
 	@GET
 	@Path("/showFriends")
 	@Produces("text/html")
 	public String showFriends() {
-		if(currentActiveUser == null)
-			return "you are not logged in.";
+		
 		String retJson = Connection.connect(
-				"http://1-dot-sweii-socialnetwork.appspot.com/rest/showFriendsService","currentUserEmail=" + currentActiveUser.getEmail(),
+				"http://localhost:8888/rest/showFriendsService","currentUserEmail=" + currentActiveUser.getEmail(),
 				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
 		
 		JSONParser parser = new JSONParser();
@@ -348,26 +400,187 @@ public class UserController {
 		return "";
 
 	}
-	
-	
 	/**
-	 * handle the log out function
+	 * Action function to send message to friends, This function will act as
+	 * a controller part and it will calls showFriendsService and user will choose his friend
 	 * 
 	 * 
-	 * @return String indicating the success of logging out process
+	 * 
+	 * @return String of jsp
 	 */
-	
 	@GET
-	@Path("/logOut")
+	@Path("/sendMessageFriends")
 	@Produces("text/html")
-	public String logOut() {
+	public String sendMessageFriends() {
 		
-		currentActiveUser = null;
-		requestedUser = null;
+		String retJson = Connection.connect(
+				"http://localhost:8888/rest/showFriendsService","currentUserEmail=" + currentActiveUser.getEmail(),
+				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
 		
-		return "You have logged out successfully";
+		JSONParser parser = new JSONParser();
+		try{
+			Object obj = parser.parse(retJson);
+			JSONObject object = (JSONObject)obj;
+			ArrayList<String> friends = (ArrayList<String>)object.get("friends");
+			String html =  "<form action=\"/social/sendMessages\" method=\"post\"> ";
+			if(friends.size() == 0)
+				return "You Have No Friends.";
+			for(int i = 0; i < friends.size(); i++)
+				html += "<input type=\"submit\" name = \"email\" value=\"" + friends.get(i)	+"\">" + "<br>";
+			html += "</form>";
+			return html;
+		}
+		
+		catch(Exception e){
+			e.printStackTrace();
+		}
+		
+		return "";
+
 	}
 
 
+
+	/**
+	 * Action function to send message to friends, This function will act as
+	 * a controller part and it will calls showFriendsService and user will choose his friend
+	 * 
+	 * 
+	 * 
+	 * @return String of jsp
+	 */
+	@GET
+	@Path("/GroupMessaging")
+	@Produces("text/html")
+	public String groupMessaging() {
+		messageMembers = new ArrayList<String>() ;
+		String retJson = Connection.connect(
+				"http://localhost:8888/rest/showFriendsService","currentUserEmail=" + currentActiveUser.getEmail(),
+				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
+		
+		JSONParser parser = new JSONParser();
+		try{
+			Object obj = parser.parse(retJson);
+			JSONObject object = (JSONObject)obj;
+			ArrayList<String> friends = (ArrayList<String>)object.get("friends");
+
+
+			String html =  "<form action=\"/social/AddMember\" method=\"post\"> ";
+			if(friends.size() == 0)
+				return "You Have No Friends.";
+			for(int i = 0; i < friends.size(); i++)
+				html += "<input type=\"submit\" name = \"MemberEmail\" value=\'" + friends.get(i)	+"' > <br>";
+			html += "  </form>";
+			return html;
+		}
+		
+		catch(Exception e){
+			e.printStackTrace();
+		}
+		
+		return "";
+
+	}
+	
+	
+	@POST
+	@Path("/AddMember")
+	@Produces("text/html")
+	public String AddMember(@FormParam("MemberEmail") String MemberEmail) {
+		
+
+	  	if ( !messageMembers.contains(currentActiveUser.getEmail()) )
+	  		messageMembers.add(currentActiveUser.getEmail());
+	       	if ( !messageMembers.contains(MemberEmail) )
+	       		messageMembers.add(MemberEmail);
+
+
+		String retJson = Connection.connect(
+				"http://localhost:8888/rest/showFriendsService","currentUserEmail=" + currentActiveUser.getEmail(),
+				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
+		
+		JSONParser parser = new JSONParser();
+		try{
+			Object obj = parser.parse(retJson);
+			JSONObject object = (JSONObject)obj;
+			ArrayList<String> friends = (ArrayList<String>)object.get("friends");
+
+
+			String html =  "<form action=\"/social/AddMember\" method=\"post\"> ";
+			if(friends.size() == 0)
+				return "You Have No Friends.";
+			for(int i = 0; i < friends.size(); i++)
+				html += "<input type=\"submit\" name = \"MemberEmail\" value=\'" + friends.get(i)	+"' > <br>";
+			html += "  </form>";
+			
+			html += "<form action='/social/createGroupMessaging' method='get'> <input type='submit' name ='done' value='Done'/> </form>";
+			return html;
+		}
+		
+		catch(Exception e){
+			e.printStackTrace();
+		}
+		
+		return "";
+
+		
+	}
+
+	@GET
+	@Path("/createGroupMessaging")
+	@Produces("text/html")
+	public Response createGroupMessaging() {
+
+
+		String retJson = Connection.connect(
+				"http://localhost:8888/rest/createGroupMessageService","Members=" + messageMembers.get(0),
+				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
+		JSONParser parser = new JSONParser();
+		Object obj;
+	
+		try {
+			obj = parser.parse(retJson);
+			JSONObject object = (JSONObject) obj;
+			if (object.get("status").equals("OK"))
+			
+				return Response.ok(new Viewable("/jsp/sendGroupMessage")).build();
+			
+
+			
+		}
+		catch (ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+			}
+
+
+			
+			return null;
+
+	}
+
+	/**
+	 * Action function to send message to group, This function will act as
+	 * a controller part and it will calls sendMessageGroupService 
+	 * 
+	 * 
+	 * 
+	 * @return String status
+	 */
+	@POST
+	@Path("/sendMessageGroup")
+	@Produces("text/html")
+	public String sendMessageGroup(	@FormParam("Message") String Message ) {
+		
+           String ret = Connection.connect(
+				"http://localhost:8888/rest/sendMessageGroupService", "currentUserEmail=" + currentActiveUser.getEmail() + "&Message=" + Message,
+				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
+		
+		
+		
+		
+		return "Send Message success";
+
+	}
 
 }

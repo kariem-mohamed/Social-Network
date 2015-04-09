@@ -1,3 +1,6 @@
+Command
+com.FCI.SWE.Controller
 com.FCI.SWE.Models
 com.FCI.SWE.Services
-com.FCI.SWE.SocialNetwork
+com.FCI.SWE.ServicesModels
+observerPattern
