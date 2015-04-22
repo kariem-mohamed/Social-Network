@@ -61,7 +61,7 @@ public class UserServices {
 	@Path("/RegistrationService")
 	public String registrationService(@FormParam("uname") String uname,
 			@FormParam("email") String email, @FormParam("password") String pass) {
-		UserEntity user = new UserEntity(uname, email, pass);
+		UserEntity user = new UserEntity(email, pass);
 		
 		user.saveUser();
 		JSONObject object = new JSONObject();
@@ -99,6 +99,7 @@ public class UserServices {
 	public String loginService(@FormParam("email") String email,
 			@FormParam("password") String pass) {
 		JSONObject object = new JSONObject();
+		
 		UserEntity user = UserEntity.getUser(email, pass);
 		if (user == null) {
 			object.put("Status", "Failed");
@@ -280,5 +281,102 @@ public class UserServices {
 		return object.toString();
 
 	}
+
+	@POST
+	@Path("postService")
+	public String postService( @FormParam("currentUserEmail") String currentUserEmail ,@FormParam("privacy") String privacy ,
+			@FormParam("post") String post ) {
+
+		JSONObject object = new JSONObject();
 	
+		
+		 UserEntity.post(currentUserEmail,privacy  , post) ;
+		
+		
+		return object.toString();
+
+	}
+
+	@POST
+	@Path("hashService")
+	public String hashService(	@FormParam("post") String post ) {
+
+		JSONObject object = new JSONObject();
+		
+		
+		 UserEntity.hashTag(post) ;
+		
+		
+		return object.toString();
+
+	}
+	
+
+	@POST
+	@Path("showPostService")
+	public String showPostService( @FormParam("email") String email , @FormParam("type") String type  ) {
+
+		JSONObject object = new JSONObject();
+
+		ArrayList<String> showPosts = new ArrayList<String>(UserEntity.showPosts(email , type));
+		object.put("posts", showPosts );
+	
+
+		return object.toString();
+
+	}
+
+	@POST
+	@Path("likePostService")
+	public String likePostService( @FormParam("currentUserEmail") String email , @FormParam("post") String post  ) {
+
+		JSONObject object = new JSONObject();
+     if ( UserEntity.likePost(email , post) == true )
+    	 object.put("status", "OK" );
+     else
+      	 object.put("status", "Fail" );
+      	 
+	
+		
+		return object.toString();
+
+	}
+
+	@POST
+	@Path("/hashPostsService")
+	public String hashPostsService(@FormParam("hash") String hash ){
+		JSONObject object = new JSONObject();
+
+		
+		 ArrayList <ArrayList<String>> showPosts = new  ArrayList <ArrayList<String>>(UserEntity.getHashPost(hash));
+		object.put("hashPosts", showPosts );
+		
+		return object.toString();
+	}
+	@POST
+	@Path("/createPageService")
+	public String createPageService(@FormParam("currentUserEmail") String email , @FormParam("pageName") String pageName ) {
+		
+		JSONObject object = new JSONObject();
+		UserEntity.createPage(pageName , email);
+		object.put("Status", "OK");
+		
+		return object.toString();
+	}
+
+	@POST
+	@Path("/searchPageService")
+	public String searchPageService(@FormParam("page") String page){
+	
+    	JSONObject object = new JSONObject();
+		ArrayList<String> getPage = new  ArrayList <String>(UserEntity.getPage(page ));
+	
+		ArrayList<String> showPosts = new  ArrayList <String>(UserEntity.showPostPage(page ));
+		
+		object.put("page", getPage );
+	    object.put("pagePosts", showPosts );
+		
+		
+		return object.toString();
+	}
 }

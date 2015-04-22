@@ -52,62 +52,19 @@ import com.FCI.SWE.ServicesModels.UserEntity;
 @Produces("text/html")
 public class UserController {
 	public static UserEntity currentActiveUser = null; 
-	private static UserEntity requestedUser = null; 
+
+	public static String userPage = ""; 
+	public static UserEntity requestedUser = null; 
 	public static ArrayList<String> messageMembers = new ArrayList<String>() ;
+	public static String likedPost = "" ;
+	
 	/**
 	 * Action function to render Signup page, this function will be executed
 	 * using url like this /rest/signup
 	 * 
 	 * @return sign up page
 	 */
-	@POST
-	@Path("/doSearch")
-	public Response usersList(@FormParam("email") String email){
-		
-		String serviceUrl = "http://localhost/rest/SearchService";
-		String urlParameters = "email=" + email;
-		String retJson = Connection.connect(
-				"http://localhost:8888/rest/SearchService", urlParameters,
-				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
-		JSONParser parser = new JSONParser();
-		Object obj;
-		try {
-			obj = parser.parse(retJson);
-			JSONObject object = (JSONObject) obj;
-			if (object.get("Status").equals("Failed"))
-				return null;
-			else{
-				Map<String, String> map = new HashMap<String, String>();
-				requestedUser = new UserEntity(object.get("name").toString(), object.get("email").toString(), object.get("password").toString(), Long.parseLong(object.get("id").toString()), (ArrayList<String>)object.get("friends"), (ArrayList<String>)object.get("friendRequests"));
-				
-				map.put("name", requestedUser.getName());
-				map.put("email", requestedUser.getEmail());
-				return Response.ok(new Viewable("/jsp/searchResult", map)).build();
-			}
-		}catch (ParseException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-		}
 
-
-		
-		return null;
-	}
-	/**
-	 * Action function to render OpenGroupMessaging page this function will be executed using
-	 * url like this /rest/OpenGroupMessaging
-	 * 
-	 * @return sendMessages page
-	 */
-	@GET
-	@Path("/OpenGroupMessaging")
-	public Response openGroupMessaging() {
-		
-		if ( messageMembers == null )
-			return null ;
-		else
-		return Response.ok(new Viewable("/jsp/sendGroupMessage")).build();
-	}
 	@GET
 	@Path("/signup")
 	public Response signUp() {
@@ -115,23 +72,6 @@ public class UserController {
 		return Response.ok(new Viewable("/jsp/register")).build();
 	}
 
-	/**
-	 * Action function to render sendMessages page this function will be executed using
-	 * url like this /rest/sendMessages
-	 * 
-	 * @return sendMessages page
-	 */
-	@POST
-	@Path("/sendMessages")
-	public Response sendMessage(@FormParam("email") String email) {
-		
-		Map<String, String> map = new HashMap<String, String>();
-		
-		map.put("email", email);
-		return Response.ok(new Viewable("/jsp/sendMessage", map)).build();
-
-		
-	}
 
 	@GET
 	@Path("/search")
@@ -161,6 +101,99 @@ public class UserController {
 	public Response login() {
 		return Response.ok(new Viewable("/jsp/login")).build();
 	}
+	
+	
+	@POST
+	@Path("/doSearch")
+	public String usersList(@FormParam("email") String email){
+
+
+		String urlParameters = "email=" + email;
+		String retJson = Connection.connect(
+				"http://localhost:8888/rest/SearchService", urlParameters,
+				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
+		JSONParser parser = new JSONParser();
+		Object obj;
+		try {
+			obj = parser.parse(retJson);
+			JSONObject object = (JSONObject) obj;
+			if (object.get("Status").equals("Failed"))
+				return null;
+			else{
+				
+
+				try {
+					
+
+                String retJson2   = Connection.connect(
+						"http://localhost:8888/rest/showFriendsService","currentUserEmail=" + currentActiveUser.getEmail(),
+						"POST", "application/x-www-form-urlencoded;charset=UTF-8");
+				JSONParser parser2 = new JSONParser();
+				Object obj2= parser2.parse(retJson2);
+
+				JSONObject object2 = (JSONObject)obj2;
+			
+
+
+					 ArrayList<String> friends = (ArrayList<String>)object2.get("friends");
+			   String type = "";
+
+
+
+					if ( friends.indexOf(email) != -1 )
+					
+						type = "1";
+					else
+						type = "2";
+					
+						urlParameters = "email=" + email + "&type=" + type ; 
+
+
+			   		String retJson3 = Connection.connect(
+		   				"http://localhost:8888/rest/showPostService", urlParameters,
+		   				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
+					JSONParser parser3 = new JSONParser();
+					Object obj3= parser3.parse(retJson3);
+					JSONObject object3 = (JSONObject) obj3;
+					
+
+		   			ArrayList<String> posts = ( ArrayList<String>) object3.get("posts") ; 
+		   			requestedUser = new UserEntity (email , "");
+		   		  String html = "  <p>User INFO</p>" +
+		           "<p>  <br> Email: " + email + "</p>"+
+		"<a href='/social/sendFriendRequest'>Send Friend Request</a>"+
+	   "<br><br>" ;
+
+		   		
+		   		html +=  "<form action='/social/sharePosts' method='post'>";
+		   				
+			     	for(int i = 0; i < posts.size(); i+=2){
+			     		likedPost = posts.get(i+1)	; 
+			     		
+						html +="<a href='/social/likePost/'> Like </a><input type='submit' value='share' />  " + posts.get(i)	+ "  like  <br><br> <br><br> " +
+						 "<textarea name='post' rows='4' cols='50' name='post'>"+ posts.get(i+1)	+
+				 		"	</textarea> <br> ---------------------------------- <br> <br><br><br>";
+			     	     
+			     	}
+			     	html += "</form>" ;
+					
+		           return html ;
+				}
+
+			   catch (ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+			  }
+			}
+		}catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+		}
+
+
+		
+		return null;
+	}
 
 	/**
 	 * Action function to response to signup request, This function will act as
@@ -175,38 +208,6 @@ public class UserController {
 	 *            provided user password
 	 * @return Status string
 	 */
-	@POST
-	@Path("/response")
-	@Produces(MediaType.TEXT_PLAIN)
-	public String response(@FormParam("uname") String uname,
-			@FormParam("email") String email, @FormParam("password") String pass) {
-
-		String serviceUrl = "http://localhost:8888/rest/RegistrationService";
-		String urlParameters = "uname=" + uname + "&email=" + email
-				+ "&password=" + pass;
-		String retJson = Connection.connect(serviceUrl, urlParameters, "POST",
-				"application/x-www-form-urlencoded;charset=UTF-8");
-		JSONParser parser = new JSONParser();
-		Object obj;
-		try {
-			// System.out.println(retJson);
-			obj = parser.parse(retJson);
-			JSONObject object = (JSONObject) obj;
-			if (object.get("Status").equals("OK"))
-				return "Registered Successfully";
-
-		} catch (ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		/*
-		 * UserEntity user = new UserEntity(uname, email, pass);
-		 * user.saveUser(); return uname;
-		 */
-		return "Failed";
-	}
-
 	/**
 	 * Action function to response to login request. This function will act as a
 	 * controller part, it will calls login service to check user data and get
@@ -221,11 +222,11 @@ public class UserController {
 	@POST
 	@Path("/home")
 	@Produces("text/html")
-	public Response home(@FormParam("email") String email,
-			@FormParam("password") String pass) {
+	public String home(@FormParam("email") String email,
+			@FormParam("password") String pass ) {
+		
 		String urlParameters = "email=" + email + "&password=" + pass;
-
-		String retJson = Connection.connect(
+      	String retJson = Connection.connect(
 				"http://localhost:8888/rest/LoginService", urlParameters,
 				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
 
@@ -235,13 +236,58 @@ public class UserController {
 			obj = parser.parse(retJson);
 			JSONObject object = (JSONObject) obj;
 			if (object.get("Status").equals("Failed"))
-				return null;
-			Map<String, String> map = new HashMap<String, String>();
-			currentActiveUser = new UserEntity(object.get("name").toString(), object.get("email").toString(), object.get("password").toString(), Long.parseLong(object.get("id").toString()), (ArrayList<String>)object.get("friends"), (ArrayList<String>)object.get("friendRequests"));
+				return "fail";
+		 
+			currentActiveUser = new  UserEntity(  email,  pass) ;
+	
+			urlParameters = "email=" + email + "&type=1" ; 
+
+	   		String retJson2 = Connection.connect(
+   				"http://localhost:8888/rest/showPostService", urlParameters,
+   				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
+			JSONParser parser2 = new JSONParser();
+			Object obj2;
+			
+			obj2 = parser2.parse(retJson2);
+			JSONObject object2 = (JSONObject) obj;
+			
+			object2 = (JSONObject) obj2;
+				
+   			ArrayList<String> posts = ( ArrayList<String>) object2.get("posts") ; 
+   		
+
+            String html = "<p> Welcome b2a ya " + email +"</p> " + 
+            "<a href='/social/search/'>Search for a Friend</a><br>" +
+"<a href='/social/showFriends'>Show all Friends<a><br>" + 
+"<a href='/social/Notification'>Notification <a><br>"+
+"<a href='/social/sendMessageFriends'>Send Message<a><br>"+
+"<a href='/social/GroupMessaging'>Create Group Messaging<a><br>"+
+
+"<a href='/social/OpenGroupMessaging'>Open Group Messaging<a><br>"+
+
+"<a href='/social/createPage'>Create Page<a><br>"+
+
+"<a href='/social/searchPage'>Search page<a><br>"+
+"<a href='/social/pagePost'>Post with your page<a><br>"+
+"<a href='/social/searchHashPosts'>show hash tag posts <a><br><br><br>"+
+ "<form action='/social/userPost' method='post'>"+
 		
-        	map.put("name", currentActiveUser.getName());
-			map.put("email", currentActiveUser.getEmail());
-			return Response.ok(new Viewable("/jsp/home", map)).build();
+      
+  "    	<textarea rows='4' cols='50' name='post'>"+
+		"	</textarea><br><br><br>"+
+		"	Privacy : <select name = 'privacy'>"+
+  		"		<option value = 'public'>Public</option>"+
+  		"		<option value = 'private''>Private</option>"+
+  		"	</select>"+
+		"<input type='submit' value='post' />"+
+	"</form>" ;
+            	for(int i = 0; i < posts.size(); i+=2)
+				html +=  "<p>" + posts.get(i)	+ "  like  <br> <br> "  + posts.get(i+1)	+"' </p>  <br> ---------------------------------- <br>";
+		
+			
+           return html ;
+           
+           
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -287,7 +333,7 @@ public class UserController {
 		
 		 new NotificationFriendRequest( sub );
 	     new NotificationSingleMessage( sub );
-	     new NotificationGroupMessage( sub );
+	 //    new NotificationGroupMessage( sub );
 
 	     html += sub.setState(currentActiveUser.getEmail());
 	     if ( html.length() == 0 )
@@ -333,35 +379,7 @@ public class UserController {
 		}
 		
 
-		/**
-		 * Action function to send message, This function will act as
-		 * a controller part and it will calls sendMessageService 
-		 * 
-		 * 
-		 * @param email
-		 *            provided  receiver's email
-		 * @param Message
-		 *            provided user's message
-		 * @return Status string
-		 */
-	@POST
-	@Path("/sendMessage")
-	@Produces("text/html")
-	public String sendMessages(@FormParam("email") String email,
-			@FormParam("Message") String Message ) {
-
-	
-        	String ret = Connection.connect(
-				"http://localhost:8888/rest/sendMessageService","currentUserEmail=" + currentActiveUser.getEmail()+"&friendEmail=" + email + "&Message=" + Message,
-				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
 		
-		
-		
-		
-		return "Send Message success";
-
-	}
-
 	/**
 	 * Action function to show friends, This function will act as
 	 * a controller part and it will calls showFriendsService 
@@ -400,187 +418,6 @@ public class UserController {
 		return "";
 
 	}
-	/**
-	 * Action function to send message to friends, This function will act as
-	 * a controller part and it will calls showFriendsService and user will choose his friend
-	 * 
-	 * 
-	 * 
-	 * @return String of jsp
-	 */
-	@GET
-	@Path("/sendMessageFriends")
-	@Produces("text/html")
-	public String sendMessageFriends() {
-		
-		String retJson = Connection.connect(
-				"http://localhost:8888/rest/showFriendsService","currentUserEmail=" + currentActiveUser.getEmail(),
-				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
-		
-		JSONParser parser = new JSONParser();
-		try{
-			Object obj = parser.parse(retJson);
-			JSONObject object = (JSONObject)obj;
-			ArrayList<String> friends = (ArrayList<String>)object.get("friends");
-			String html =  "<form action=\"/social/sendMessages\" method=\"post\"> ";
-			if(friends.size() == 0)
-				return "You Have No Friends.";
-			for(int i = 0; i < friends.size(); i++)
-				html += "<input type=\"submit\" name = \"email\" value=\"" + friends.get(i)	+"\">" + "<br>";
-			html += "</form>";
-			return html;
-		}
-		
-		catch(Exception e){
-			e.printStackTrace();
-		}
-		
-		return "";
 
-	}
-
-
-
-	/**
-	 * Action function to send message to friends, This function will act as
-	 * a controller part and it will calls showFriendsService and user will choose his friend
-	 * 
-	 * 
-	 * 
-	 * @return String of jsp
-	 */
-	@GET
-	@Path("/GroupMessaging")
-	@Produces("text/html")
-	public String groupMessaging() {
-		messageMembers = new ArrayList<String>() ;
-		String retJson = Connection.connect(
-				"http://localhost:8888/rest/showFriendsService","currentUserEmail=" + currentActiveUser.getEmail(),
-				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
-		
-		JSONParser parser = new JSONParser();
-		try{
-			Object obj = parser.parse(retJson);
-			JSONObject object = (JSONObject)obj;
-			ArrayList<String> friends = (ArrayList<String>)object.get("friends");
-
-
-			String html =  "<form action=\"/social/AddMember\" method=\"post\"> ";
-			if(friends.size() == 0)
-				return "You Have No Friends.";
-			for(int i = 0; i < friends.size(); i++)
-				html += "<input type=\"submit\" name = \"MemberEmail\" value=\'" + friends.get(i)	+"' > <br>";
-			html += "  </form>";
-			return html;
-		}
-		
-		catch(Exception e){
-			e.printStackTrace();
-		}
-		
-		return "";
-
-	}
 	
-	
-	@POST
-	@Path("/AddMember")
-	@Produces("text/html")
-	public String AddMember(@FormParam("MemberEmail") String MemberEmail) {
-		
-
-	  	if ( !messageMembers.contains(currentActiveUser.getEmail()) )
-	  		messageMembers.add(currentActiveUser.getEmail());
-	       	if ( !messageMembers.contains(MemberEmail) )
-	       		messageMembers.add(MemberEmail);
-
-
-		String retJson = Connection.connect(
-				"http://localhost:8888/rest/showFriendsService","currentUserEmail=" + currentActiveUser.getEmail(),
-				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
-		
-		JSONParser parser = new JSONParser();
-		try{
-			Object obj = parser.parse(retJson);
-			JSONObject object = (JSONObject)obj;
-			ArrayList<String> friends = (ArrayList<String>)object.get("friends");
-
-
-			String html =  "<form action=\"/social/AddMember\" method=\"post\"> ";
-			if(friends.size() == 0)
-				return "You Have No Friends.";
-			for(int i = 0; i < friends.size(); i++)
-				html += "<input type=\"submit\" name = \"MemberEmail\" value=\'" + friends.get(i)	+"' > <br>";
-			html += "  </form>";
-			
-			html += "<form action='/social/createGroupMessaging' method='get'> <input type='submit' name ='done' value='Done'/> </form>";
-			return html;
-		}
-		
-		catch(Exception e){
-			e.printStackTrace();
-		}
-		
-		return "";
-
-		
-	}
-
-	@GET
-	@Path("/createGroupMessaging")
-	@Produces("text/html")
-	public Response createGroupMessaging() {
-
-
-		String retJson = Connection.connect(
-				"http://localhost:8888/rest/createGroupMessageService","Members=" + messageMembers.get(0),
-				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
-		JSONParser parser = new JSONParser();
-		Object obj;
-	
-		try {
-			obj = parser.parse(retJson);
-			JSONObject object = (JSONObject) obj;
-			if (object.get("status").equals("OK"))
-			
-				return Response.ok(new Viewable("/jsp/sendGroupMessage")).build();
-			
-
-			
-		}
-		catch (ParseException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-			}
-
-
-			
-			return null;
-
-	}
-
-	/**
-	 * Action function to send message to group, This function will act as
-	 * a controller part and it will calls sendMessageGroupService 
-	 * 
-	 * 
-	 * 
-	 * @return String status
-	 */
-	@POST
-	@Path("/sendMessageGroup")
-	@Produces("text/html")
-	public String sendMessageGroup(	@FormParam("Message") String Message ) {
-		
-           String ret = Connection.connect(
-				"http://localhost:8888/rest/sendMessageGroupService", "currentUserEmail=" + currentActiveUser.getEmail() + "&Message=" + Message,
-				"POST", "application/x-www-form-urlencoded;charset=UTF-8");
-		
-		
-		
-		
-		return "Send Message success";
-
-	}
-
 }
